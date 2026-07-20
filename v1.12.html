@@ -6511,6 +6511,12 @@
                                 if (json[8] && json[8][1]) document.getElementById('metaLPOwner').value = json[8][1];
                                 if (json[9] && json[9][1]) document.getElementById('metaPrideEmail').value = json[9][1];
 
+                                // Trigger input event to update tab name if Pride Member Name was imported
+                                if (json[0] && json[0][1]) {
+                                    const event = new Event('input', { bubbles: true });
+                                    document.getElementById('metaPrideName').dispatchEvent(event);
+                                }
+
                                 saveCurrentUIIntoSession();
                                 processTableData();
                             },
