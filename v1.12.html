@@ -6081,7 +6081,7 @@
                     </select>
                 </td>
                 <td class="col-duration"><input type="text" class="table-input ${durationInputClass}" value="${escapeHtml(row.duration)}" data-index="${idx}" data-field="duration" placeholder="0h"></td>
-                <td class="col-due"><input type="date" class="table-input ${dueInputClass}" value="${isLive ? '' : row.dueDate}" data-index="${idx}" data-field="dueDate" ${isLive ? 'disabled' : ''}></td>
+                <td class="col-due"><div><input type="date" class="table-input ${dueInputClass}" value="${isLive ? '' : row.dueDate}" data-index="${idx}" data-field="dueDate" ${isLive ? 'disabled' : ''}></div></td>
                 <td class="col-status">
                     <select class="table-input pill-dropdown ${statusInputClass} ${fieldsDisabledClass} ${row.eventStatus === 'Exists in Cornerstone' ? 'status-exists' : (row.eventStatus === 'Needs to be created in Cornerstone' ? 'status-needs' : '')}" data-index="${idx}" data-field="eventStatus" ${isLive ? '' : 'disabled'}>
                         <option value="" ${row.eventStatus === '' ? 'selected' : ''}>-- Select One --</option>
@@ -6259,9 +6259,12 @@
                         } else if (record.dueDate === record.originalCalculatedDueDate) {
                             record.isDueDateOverridden = false;
                         }
-                        runGlobalRecalculationEngine();
-                        const newTarget = document.querySelector(`[data-index="${index}"][data-field="dueDate"]`);
-                        if (newTarget) newTarget.focus();
+                        const _dueDateIndex = index;
+                        setTimeout(() => {
+                            runGlobalRecalculationEngine();
+                            const newTarget = document.querySelector(`[data-index="${_dueDateIndex}"][data-field="dueDate"]`);
+                            if (newTarget) newTarget.focus();
+                        }, 0);
                         return;
                     }
 
