@@ -6797,40 +6797,39 @@
                                 }
                             });
 
-                            const performJsonImport = (importProfile) => {
+                            const performJsonImport = (importProfile, targetMode) => {
                                 recordStateSnapshot();
-
                                 const currentActiveSession = sessions.find(s => s.sessionId === activeSessionId);
-                                const isUntouched = currentActiveSession &&
-                                    currentActiveSession.dataset.length === 0 &&
-                                    !currentActiveSession.config.prideName &&
-                                    !currentActiveSession.config.roleTitle &&
-                                    !currentActiveSession.config.startDate;
-
-                                let targetSessionIdToLoad = null;
                                 let hitCapWarning = false;
 
-                                importedSessions.forEach((importedSession, index) => {
-                                    let configToUse;
-                                    if (importProfile) {
-                                        configToUse = importedSession.config || {};
-                                    } else {
-                                        configToUse = {
-                                            prideName: '', prideEmail: '', roleTitle: '', managerName: '', startDate: '', orientation: '',
-                                            tzCornerstone: '', tzHire: '', region: '', product: '', lpOwner: ''
-                                        };
-                                    }
-
-                                    if (index === 0 && isUntouched) {
-                                        currentActiveSession.config = configToUse;
-                                        currentActiveSession.dataset = importedSession.dataset || [];
-                                        currentActiveSession.selectedIds = new Set(importedSession.selectedIdsArray || []);
-                                        targetSessionIdToLoad = currentActiveSession.sessionId;
-                                    } else {
+                                if (targetMode === 'current') {
+                                    // Append all imported sessions' rows into the current active tab
+                                    importedSessions.forEach((importedSession, index) => {
+                                        if (importProfile && index === 0) {
+                                            currentActiveSession.config = { ...(importedSession.config || {}) };
+                                        }
+                                        const newRows = (importedSession.dataset || []).map(row => ({ ...row, id: generateId() }));
+                                        currentActiveSession.dataset = [...currentActiveSession.dataset, ...newRows];
+                                    });
+                                    loadSessionIntoUI(currentActiveSession.sessionId);
+                                    saveStateToLocalStorage();
+                                    showCustomModal("✅ Data appended to current tab successfully!", true);
+                                } else {
+                                    // Load each imported session into a new tab
+                                    let targetSessionIdToLoad = null;
+                                    importedSessions.forEach((importedSession) => {
+                                        let configToUse;
+                                        if (importProfile) {
+                                            configToUse = importedSession.config || {};
+                                        } else {
+                                            configToUse = {
+                                                prideName: '', prideEmail: '', roleTitle: '', managerName: '', startDate: '', orientation: '',
+                                                tzCornerstone: '', tzHire: '', region: '', product: '', lpOwner: ''
+                                            };
+                                        }
                                         if (sessions.length < 10) {
                                             const newId = generateId();
                                             if (!targetSessionIdToLoad) targetSessionIdToLoad = newId;
-
                                             sessions.push({
                                                 sessionId: newId,
                                                 templateNum: templateCounter++,
@@ -6841,34 +6840,39 @@
                                         } else {
                                             hitCapWarning = true;
                                         }
+                                    });
+                                    loadSessionIntoUI(targetSessionIdToLoad || activeSessionId);
+                                    saveStateToLocalStorage();
+                                    if (hitCapWarning) {
+                                        showCustomModal("✅ Data imported, but some tabs were skipped because the 10-tab limit was reached.", true);
+                                    } else {
+                                        showCustomModal("✅ Tab data imported into a new tab successfully!", true);
                                     }
-                                });
-
-                                loadSessionIntoUI(targetSessionIdToLoad || activeSessionId);
-                                saveStateToLocalStorage();
-
-                                if (hitCapWarning) {
-                                    showCustomModal("✅ Data imported, but some tabs were skipped because the 10-tab limit was reached.", true);
-                                } else {
-                                    showCustomModal("✅ Tab data imported successfully!", true);
                                 }
+                            };
+
+                            const askDestination = (importProfile) => {
+                                showCustomModal(
+                                    "Where would you like to load this data?",
+                                    false,
+                                    () => performJsonImport(importProfile, 'current'),
+                                    () => performJsonImport(importProfile, 'new'),
+                                    "Current Tab",
+                                    "New Tab"
+                                );
                             };
 
                             if (jsonHasProfileData) {
                                 showCustomModal(
                                     "This file contains New Hire Profile Details. Would you like to import them along with the learning plan schedule?",
                                     false,
-                                    () => {
-                                        performJsonImport(true);
-                                    },
-                                    () => {
-                                        performJsonImport(false);
-                                    },
+                                    () => askDestination(true),
+                                    () => askDestination(false),
                                     "Yes, Import Both",
                                     "No, Table Only"
                                 );
                             } else {
-                                performJsonImport(false);
+                                askDestination(false);
                             }
                         } else {
                             showCustomModal("Invalid file format. Please ensure you are uploading a valid Learning Plan .json file.", true);
